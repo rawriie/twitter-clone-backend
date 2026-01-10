@@ -19,6 +19,8 @@ app.use(cors({
 app.use(express.json())
 const commentRouter = require('./routes/comments')
 const postRouter = require('./routes/posts')
+const userRouter = require('./routes/users')
+app.use('/users', userRouter)
 app.use('/comments', commentRouter)
 app.use('/posts', postRouter)
 
