@@ -17,7 +17,7 @@ router.get('/comments/:id', async (req, res) => {
     res.json(comments)
   }
   catch(error){
-    res.status(500).json({message: err.message})
+    res.status(500).json({message: error.message})
     
   }
 })
@@ -83,7 +83,7 @@ async function getPost(req, res, next){
     }
   }
   catch(error){
-    res.status(500).json({"message": "Server error."});
+    return res.status(500).json({"message": "Server error."});
   }
   res.post = post
   next()
