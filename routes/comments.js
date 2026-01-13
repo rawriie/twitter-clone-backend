@@ -19,7 +19,7 @@ router.get('/:id', getComment, (req, res) => {
 
 router.post('/', async (req, res) => {
   const comment = new Comments({
-    name: req.body.name,
+    userId: req.body.userId,
     commentContent: req.body.commentContent,
     postId: req.body.postId,
     

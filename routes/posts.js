@@ -37,7 +37,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(newPost)
   }
   catch(err){
-    res.status(400).json({message: error.message})
+    res.status(400).json({message: err.message})
   }
 })
 
