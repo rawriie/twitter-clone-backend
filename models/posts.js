@@ -9,12 +9,7 @@ const postSchema = new mongoose.Schema({
   postContent:{
     type: String,
     required: true
-  },
-  postDate:{
-    type: Date,
-    required: true,
-    default: Date.now
   }
-})
+}, {timestamps: true})
 
 module.exports = mongoose.model('Posts', postSchema)

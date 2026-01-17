@@ -1,40 +1,48 @@
 const express = require('express');
 const router = express.Router()
 const Comments = require('../models/comments');
+const { protect } = require('../middleware/users');
+
 router.get('/', async (req, res) => {
-  try{
-    const comments = await Comments.find()
+  try {
+    const comments = await Comments.find().populate('userId', 'username').sort({ createdAt: -1 })
     res.json(comments)
   }
-  catch (err){
-    res.status(500).json({message: err.message})
+  catch (err) {
+    res.status(500).json({ message: err.message })
   }
 })
 
-router.get('/:id', getComment, (req, res) => {
-  res.json(res.comment)
+router.get('/:postid', async (req, res) => {
+  try {
+    const comments = await Comments.find({ postId: req.params.postid }).populate('userId', 'username').sort({ createdAt: -1 })
+    res.json(comments)
+  }
+  catch (error) {
+    res.status(500).json({ message: error.message })
+
+  }
 })
 
 
-
-router.post('/', async (req, res) => {
+router.post('/:postId', protect, async (req, res) => {
   const comment = new Comments({
-    userId: req.body.userId,
+    userId: req.user._id,
     commentContent: req.body.commentContent,
-    postId: req.body.postId,
-    
+    postId: req.params.postId
+
   })
-  
-  try{
+
+  try {
     const newComment = await comment.save()
     res.status(201).json(newComment)
   }
-  catch(err){
-    res.status(400).json({message: err.message})
+  catch (err) {
+    res.status(400).json({ message: err.message })
   }
 })
 
-router.patch('/:id', getComment, async (req, res) => {
+router.patch('/:id', protect, getComment, async (req, res) => {
   console.log('BODY IS:', req.body)
   if (req.body.commentContent == null) {
     return res.status(400).json({
@@ -45,36 +53,47 @@ router.patch('/:id', getComment, async (req, res) => {
   res.comment.commentContent = req.body.commentContent
 
   try {
-    const updatedComment = await res.comment.save()
-    res.status(200).json({
-      message: "Comment updated.",
-      comment: updatedComment
-    })
+    if (req.user._id.equals(res.comment.userId._id)) {
+
+      const updatedComment = await res.comment.save()
+      return res.status(200).json({
+        message: "Comment updated.",
+        comment: updatedComment
+      })
+    }
+    else {
+      return res.status(401).json({ "message": "User not authorized." })
+    }
   } catch (err) {
     res.status(400).json({ message: err.message })
   }
 })
 
-router.delete('/:id', getComment, async (req, res) => {
+router.delete('/:id', protect, getComment, async (req, res) => {
   try {
-    await res.comment.deleteOne()
-    res.status(200).json({"message": "Deleted comment."})
+    if (req.user._id.equals(res.comment.userId._id)) {
+      await res.comment.deleteOne()
+      return res.status(200).json({ "message": "Deleted comment." })
+    }
+    else {
+      return res.status(401).json({ "message": "User not authorized." })
+    }
   } catch (err) {
-    res.status(500).json({"message": err.message})
-    
+    res.status(500).json({ "message": err.message })
+
   }
 })
 
-async function getComment(req, res, next){
+async function getComment(req, res, next) {
   let comment;
-  try{
-    comment = await Comments.findById(req.params.id)
-    if(comment === null){
-      return res.status(404).json({"message": "Comment not found."})
+  try {
+    comment = await Comments.findById(req.params.id).populate('userId', 'username')
+    if (comment === null) {
+      return res.status(404).json({ "message": "Comment not found." })
     }
   }
-  catch(error){
-    res.status(500).json({"message": "Server error."});
+  catch (error) {
+    res.status(500).json({ "message": "Server error." });
   }
   res.comment = comment
   next()

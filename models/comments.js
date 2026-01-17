@@ -15,11 +15,7 @@ const commentSchema = new mongoose.Schema({
     ref: 'Posts',
     required: true
   },
-  commentedDate:{
-    type: Date,
-    required: true,
-    default: Date.now
-  }
-})
+  
+}, {timestamps: true})
 
 module.exports = mongoose.model('Comments', commentSchema)
