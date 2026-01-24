@@ -1,6 +1,16 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const userSchema = new mongoose.Schema({
+  profilePic:{
+    type: String,
+    required: true,
+  },
+  displayName:{
+    type: String,
+    required: true,
+    default: function () {
+      return this.username;
+  }},
   username:{
     type: String,
     required: true

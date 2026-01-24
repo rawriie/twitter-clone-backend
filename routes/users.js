@@ -3,53 +3,65 @@ const router = express.Router()
 const Users = require('../models/users');
 const { protect } = require('../middleware/users');
 const jwt = require('jsonwebtoken');
+const { upload, uploadToCloudinary } = require('../middleware/upload');
 
-router.post('/register', async (req, res) => {
-  const {username, email, password} = req.body
-  try{
-    if(!username || !email || !password){
-      return res.status(400).json({message: "Missing field."})
+
+router.post('/register', upload.single('uploadedFile'), async (req, res) => {
+  const { username, email, password, displayName } = req.body
+  try {
+    if (!username || !email || !password || !displayName || !req.file) {
+      return res.status(400).json({ message: "Missing field." })
     }
-    const userExists = await Users.findOne({$or: [
-      { username: username },
-      { email: email }
-      ]});
+    const userExists = await Users.findOne({
+      $or: [
+        { username: username },
+        { email: email }
+      ]
+    });
     if (userExists) {
-      if(userExists.username === username){
-        return res.status(400).json({message: "Username taken."})
+      if (userExists.username === username) {
+        return res.status(400).json({ message: "Username taken." })
       }
-      if(userExists.email === email){
-        return res.status(400).json({message: "Email already registered."})
+      if (userExists.email === email) {
+        return res.status(400).json({ message: "Email already registered." })
       }
     }
-  
-    const user = await Users.create({username, email, password})
+    const img = await uploadToCloudinary(req.file.buffer);
+    const user = await Users.create({
+      username: username,
+      email: email,
+      password: password,
+      displayName: displayName,
+      profilePic: img.secure_url
+    })
     const token = generateToken(user._id);
     res.status(201).json({
       id: user._id,
       username: user.username,
       email: user.email,
-      token,
+      displayName: user.displayName,
+      profilePic: user.profilePic,
+      token
     })
   }
-  catch (err){
-    res.status(500).json({message: err.message})
+  catch (err) {
+    res.status(500).json({ message: err.message })
   }
 })
 
 router.post('/login', async (req, res) => {
-  const {username, email, password} = req.body
-  try{
-    if(!username && !email || !password){
-      return res.status(400).json({message: "Missing field."})
+  const { username, email, password } = req.body
+  try {
+    if (!username && !email || !password) {
+      return res.status(400).json({ message: "Missing field." })
     }
-    
-    const user = await Users.findOne({email})
-    
-    if(!user || !(await user.matchPwd(password))){
-      return res.status(401).json({message: "Invalid credentials."})
+
+    const user = await Users.findOne({ email })
+
+    if (!user || !(await user.matchPwd(password))) {
+      return res.status(401).json({ message: "Invalid credentials." })
     }
-    
+
     const token = generateToken(user._id);
     res.status(201).json({
       id: user._id,
@@ -58,16 +70,50 @@ router.post('/login', async (req, res) => {
       token,
     })
   }
-  catch(error){
-    res.status(500).json({message: err.message})
+  catch (error) {
+    res.status(500).json({ message: err.message })
   }
 })
+router.get("/check-availability", async (req, res) => {
+  try {
+    console.log(req.query)
+    if (!req.query.username && !req.query.email) {
+      res.status(400).json({ message: "No username or email in body." })
+    }
 
+
+    if (req.query.username) {
+      const username = req.query.username
+      const user = await Users.findOne({ username })
+
+      if (!user) {
+        res.json({ message: "Username is available." })
+      }
+      else {
+        res.status(400).json({ message: "Username taken." })
+      }
+    }
+    if (req.query.email) {
+      const email = req.query.email
+      const user = await Users.findOne({ email })
+
+      if (!user) {
+        res.json({ message: "Email is available." })
+      }
+      else {
+        res.status(400).json({ message: "Email taken." })
+      }
+    }
+  }
+  catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
 router.get("/me", protect, async (req, res) => {
   res.status(200).json(req.user);
 })
 
 const generateToken = (id) => {
-  return jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: "30d"})
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" })
 }
 module.exports = router;

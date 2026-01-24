@@ -5,7 +5,7 @@ const { protect } = require('../middleware/users');
 
 router.get('/', async (req, res) => {
   try {
-    const posts = await Posts.find().populate('userId', 'username').sort({ createdAt: -1 })
+    const posts = await Posts.find().populate('userId', 'username displayName profilePic').sort({ createdAt: -1 })
 
     res.json(posts)
   }
@@ -80,7 +80,7 @@ router.delete('/:id', protect, getPost, async (req, res) => {
 async function getPost(req, res, next) {
   let post;
   try {
-    post = await Posts.findById(req.params.id).populate('userId', 'username')
+    post = await Posts.findById(req.params.id).populate('userId', 'username displayName profilePic')
     if (post === null) {
       return res.status(404).json({ "message": "Post not found." })
     }
