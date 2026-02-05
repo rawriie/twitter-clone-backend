@@ -4,7 +4,27 @@ const Users = require('../models/users');
 const { protect } = require('../middleware/users');
 const jwt = require('jsonwebtoken');
 const { upload, uploadToCloudinary } = require('../middleware/upload');
+const users = require('../models/users');
 
+router.get('/:username', async (req, res) => {
+  try{
+    const username = req.params.username;
+    const user = await Users.findOne({username: username}).select('-password -email');
+
+    if(user){
+      res.status(200).json(user);
+    }
+    else{
+      res.status(404).json({message: "User not found."});
+    }
+
+    res.status(200)
+  }
+  catch(err){
+    res.status(500).json({ message: err.message })
+  }
+
+})
 
 router.post('/register', upload.single('uploadedFile'), async (req, res) => {
   const { username, email, password, displayName } = req.body
@@ -26,15 +46,27 @@ router.post('/register', upload.single('uploadedFile'), async (req, res) => {
         return res.status(400).json({ message: "Email already registered." })
       }
     }
-    const img = await uploadToCloudinary(req.file.buffer);
+
+    const emailRegex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    const usernameRegex = /^(?![._])(?!.*[._]$)(?!.*__)(?!.*\.\.)(?!.*\._)(?!.*_\.)(?=.{8,20}$)[a-zA-Z0-9._-]+$/;
+
+    if(!email.match(emailRegex) || !username.match(usernameRegex || password.length < 8 || password.length > 30)){
+      return res.status(400).json({ message: "Invalid user info." });
+    }
+
+    const img = await uploadToCloudinary(req.file.buffer, true);
+
+    console.log(img, "ajaajjajajajaj");
     const user = await Users.create({
       username: username,
       email: email,
       password: password,
       displayName: displayName,
-      profilePic: img.secure_url
+      profilePic: img
     })
+    
     const token = generateToken(user._id);
+   
     res.status(201).json({
       id: user._id,
       username: user.username,
@@ -43,6 +75,7 @@ router.post('/register', upload.single('uploadedFile'), async (req, res) => {
       profilePic: user.profilePic,
       token
     })
+    
   }
   catch (err) {
     res.status(500).json({ message: err.message })
@@ -109,7 +142,7 @@ router.get("/check-availability", async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 })
-router.get("/me", protect, async (req, res) => {
+router.get("/", protect, async (req, res) => {
   res.status(200).json(req.user);
 })
 

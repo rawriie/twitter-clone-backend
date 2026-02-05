@@ -6,9 +6,18 @@ const postSchema = new mongoose.Schema({
     ref: 'Users',
     required: true
   },
-  postContent:{
+  content:{
     type: String,
     required: true
+  },
+  parentId:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Posts',
+  },
+  likes:{
+    type: Number,
+    required: true,
+    default: 0
   }
 }, {timestamps: true})
 

@@ -17,11 +17,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
 }))
 app.use(express.json())
-const commentRouter = require('./routes/comments')
 const postRouter = require('./routes/posts')
 const userRouter = require('./routes/users')
 app.use('/api/users', userRouter)
-app.use('/api/comments', commentRouter)
 app.use('/api/posts', postRouter)
 
 app.listen(PORT, () => {console.log("Server Started on \nhttp://localhost:" + PORT )})
