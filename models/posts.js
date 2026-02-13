@@ -12,13 +12,27 @@ const postSchema = new mongoose.Schema({
   },
   parentId:{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Posts',
+    ref: 'Posts'
   },
-  likes:{
-    type: Number,
-    required: true,
-    default: 0
-  }
+  
+  
 }, {timestamps: true})
+
+postSchema.virtual('likesCount', {
+  ref: 'Likes',
+  localField: '_id',
+  foreignField: 'postId',
+  count: true
+});
+
+postSchema.virtual('replyCount', {
+  ref: 'Posts',
+  localField: '_id',
+  foreignField: 'parentId',
+  count: true
+});
+
+postSchema.set('toJSON', { virtuals: true });
+postSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Posts', postSchema)

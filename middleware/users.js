@@ -2,6 +2,7 @@ const Users = require('../models/users');
 const jwt = require('jsonwebtoken');
 
 async function protect(req, res, next){
+  
   let token;
   if(req.headers.authorization && req.headers.authorization.startsWith("Bearer")){
     try{
@@ -9,7 +10,7 @@ async function protect(req, res, next){
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
       
       req.user = await Users.findById(decoded.id).select("-password")
-
+      console.log(req.headers.authorization);
       return next();
     }
     catch(error){
@@ -17,7 +18,7 @@ async function protect(req, res, next){
       res.status(401).json({message: "Verification failed."})
     }
   }
-  
+  console.log(req.headers.authorization);
   res.status(401).json({message: "Verification failed."})
   
   
