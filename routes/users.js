@@ -4,9 +4,9 @@ const Users = require('../models/users');
 const { protect } = require('../middleware/users');
 const jwt = require('jsonwebtoken');
 const { upload, uploadToCloudinary } = require('../middleware/upload');
-const users = require('../models/users');
+const Follows = require('../models/follows')
 
-router.get('/:username', async (req, res) => {
+router.get('/info/:username', async (req, res) => {
   try{
     const username = req.params.username;
     const user = await Users.findOne({username: username}).select('-password -email');
@@ -56,7 +56,7 @@ router.post('/register', upload.single('uploadedFile'), async (req, res) => {
 
     const img = await uploadToCloudinary(req.file.buffer, true);
 
-    console.log(img, "ajaajjajajajaj");
+   
     const user = await Users.create({
       username: username,
       email: email,
@@ -108,8 +108,9 @@ router.post('/login', async (req, res) => {
   }
 })
 router.get("/check-availability", async (req, res) => {
+ 
   try {
-    console.log(req.query)
+   
     if (!req.query.username && !req.query.email) {
       res.status(400).json({ message: "No username or email in body." })
     }
@@ -143,10 +144,121 @@ router.get("/check-availability", async (req, res) => {
   }
 })
 router.get("/", protect, async (req, res) => {
-  res.status(200).json(req.user);
+  try{
+    res.status(200).json(req.user);
+   
+  }
+  catch (err) {
+   
+    res.status(500).json({ message: err.message })
+  }
 })
 
+
+router.post("/follow/:userId", protect, async (req, res) => {
+  try{
+
+    if(req.user._id.equals(req.params.userId)){
+      return res.status(400).json({message: "You cannot follow yourself."});
+    }
+
+    const followExists = await Follows.findOne({userId: req.user._id, followerId: req.params.userId});
+
+    if(followExists){
+      
+      return res.status(400).json({message: "User already followed."});
+      
+    }
+
+    const follow =  new Follows({
+      userId: req.params.userId,
+      followerId: req.user._id
+    });
+
+    const newFollow = await follow.save();
+    res.status(201).json(newFollow);
+  }
+  catch(err){
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.delete("/follow/:userId", protect, async (req, res) => {
+  try{
+
+    if(req.user._id.equals(req.params.userId)){
+      return res.status(400).json({message: "You cannot unfollow yourself."});
+    }
+
+    const follow = await Follows.findOne({userId: req.params.userId, followerId: req.user._id});
+
+    if(!follow){
+      
+      return res.status(400).json({message: "User is not followed."});
+      
+    }
+
+    await follow.deleteOne();
+    res.status(200).json({message: "Unfollowed user."});
+
+   
+  }
+  catch(err){
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.get("/follower/:userId", protect, async (req, res) => {
+  try{
+    const followers = await Follows.find({userId: req.params.userId})
+    const following = await Follows.find({followerId: req.params.userId})
+    const isFollowing = followers.filter(f => f.followerId.equals(req.user._id));
+
+    res.json({followerCount: followers.length, followingCount: following.length, isFollowing: isFollowing.length > 0 ? true : false});
+  }
+  catch(err){
+    res.status(500).json({ message: err.message });
+  }
+})
+
+
+router.patch("/edit", protect, upload.fields([{ name: 'pfp', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), async (req, res) => {
+  const { displayName, bio } = req.body
+  try{
+    console.log("1")
+    if(req.files){
+      if(req.files.pfp?.length > 0){
+        const pfpUrl = await uploadToCloudinary(req.files.pfp[0].buffer, true);
+
+        req.user.profilePic = pfpUrl;
+      }
+      if(req.files.banner?.length > 0){
+        const bannerUrl = await uploadToCloudinary(req.files.banner[0].buffer, false);
+
+        req.user.bannerImg = bannerUrl;
+      }
+    }
+    console.log("2")
+    if(displayName){
+      req.user.displayName = displayName;
+    }
+    console.log("3")
+    if(bio){
+      req.user.bio = bio;
+    }
+    console.log("4")
+    const updatedUser = req.user.save();
+    console.log("5")
+    res.status(201).json(updatedUser);
+    console.log("6")
+  }
+  catch(err){
+    res.status(500).json({ message: err.message });
+  }
+})
+
+
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" })
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 }
 module.exports = router;

@@ -25,6 +25,9 @@ const userSchema = new mongoose.Schema({
   },
   bio:{
     type: String
+  },
+  bannerImg:{
+    type: String
   }
 }, {timestamps: true})
 

@@ -185,7 +185,7 @@ router.get('/user/posts/:userId', protect, async (req, res) => {
 })
 
 //Get post replies
-router.get('/replies/:id', protect, async (req, res) => {
+router.get('/user/:id', protect, async (req, res) => {
   try {
     const replies = await Posts.find({ parentId: req.params.id }).populate('userId', 'username displayName profilePic').populate('likesCount').populate('replyCount').sort({ createdAt: -1 }).lean();
     
